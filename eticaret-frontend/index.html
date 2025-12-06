@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ticaret Arama Analiz Sistemi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line"></i>
+                <span>E-Ticaret Analytics</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">
+                    <i class="fas fa-search"></i> Arama
+                </a>
+                <a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </a>
+            </div>
+            <div class="nav-status">
+                <span id="connection-status" class="status-badge offline">
+                    <i class="fas fa-circle"></i> Bağlantı Bekleniyor
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Gerçek Zamanlı</span>
+                    <br>Arama Analizi
+                </h1>
+                <p class="hero-subtitle">
+                    Apache Kafka & Spark Streaming ile e-ticaret arama verilerini analiz edin
+                </p>
+            </div>
+        </section>
+
+        <!-- Search Box Section -->
+        <section class="search-section">
+            <div class="search-container glass-card">
+                <div class="search-header">
+                    <h2><i class="fas fa-search"></i> Ürün Ara</h2>
+                    <p>Arama yaparak Kafka'ya veri gönderin</p>
+                </div>
+                
+                <div class="search-box">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="Ürün adı yazın (örn: telefon, laptop, kulaklık...)"
+                            autocomplete="off"
+                        >
+                        <button id="search-btn" class="search-button">
+                            <i class="fas fa-paper-plane"></i>
+                            Gönder
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Search Tags -->
+                <div class="quick-tags">
+                    <span class="tag-label">Hızlı Arama:</span>
+                    <button class="quick-tag" data-search="telefon">📱 Telefon</button>
+                    <button class="quick-tag" data-search="laptop">💻 Laptop</button>
+                    <button class="quick-tag" data-search="kulaklık">🎧 Kulaklık</button>
+                    <button class="quick-tag" data-search="televizyon">📺 Televizyon</button>
+                    <button class="quick-tag" data-search="saat">⌚ Saat</button>
+                    <button class="quick-tag" data-search="ayakkabı">👟 Ayakkabı</button>
+                </div>
+
+                <!-- Region Select -->
+                <div class="region-select-wrapper">
+                    <label for="region-select"><i class="fas fa-map-marker-alt"></i> Bölge:</label>
+                    <select id="region-select">
+                        <option value="random">🎲 Rastgele</option>
+                        <option value="İstanbul">İstanbul</option>
+                        <option value="Ankara">Ankara</option>
+                        <option value="İzmir">İzmir</option>
+                        <option value="Bursa">Bursa</option>
+                        <option value="Antalya">Antalya</option>
+                        <option value="Adana">Adana</option>
+                        <option value="Gaziantep">Gaziantep</option>
+                        <option value="Mersin">Mersin</option>
+                        <option value="Samsun">Samsun</option>
+                        <option value="Ordu">Ordu</option>
+                    </select>
+                </div>
+
+                <!-- Search Result -->
+                <div id="search-result" class="search-result hidden">
+                    <div class="result-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="result-text">
+                        <strong>Arama gönderildi!</strong>
+                        <span id="result-details"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Simulation Section -->
+        <section class="simulation-section">
+            <div class="simulation-container glass-card">
+                <div class="simulation-header">
+                    <h2><i class="fas fa-robot"></i> Simülasyon Kontrolü</h2>
+                    <p>Otomatik veri üretimini başlatın veya durdurun</p>
+                </div>
+
+                <div class="simulation-controls">
+                    <div class="interval-control">
+                        <label for="interval-input">Aralık (ms):</label>
+                        <input type="number" id="interval-input" value="1000" min="100" max="10000" step="100">
+                    </div>
+                    
+                    <div class="simulation-buttons">
+                        <button id="start-simulation" class="sim-btn start-btn">
+                            <i class="fas fa-play"></i> Başlat
+                        </button>
+                        <button id="stop-simulation" class="sim-btn stop-btn" disabled>
+                            <i class="fas fa-stop"></i> Durdur
+                        </button>
+                    </div>
+                </div>
+
+                <div class="simulation-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="message-count">0</span>
+                        <span class="stat-label">Toplam Mesaj</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="simulation-status">Durdu</span>
+                        <span class="stat-label">Durum</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Searches -->
+        <section class="recent-section">
+            <div class="recent-container glass-card">
+                <div class="recent-header">
+                    <h2><i class="fas fa-history"></i> Son Aramalar</h2>
+                    <button id="clear-history" class="clear-btn">
+                        <i class="fas fa-trash"></i> Temizle
+                    </button>
+                </div>
+                <div id="recent-searches" class="recent-list">
+                    <p class="empty-state">Henüz arama yapılmadı</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <i class="fas fa-code"></i> 
+                Big Data Projesi - Apache Kafka & Spark Streaming
+            </p>
+            <p class="footer-tech">
+                <span><i class="fab fa-java"></i> Java 21</span>
+                <span><i class="fas fa-database"></i> MongoDB</span>
+                <span><i class="fas fa-stream"></i> Kafka</span>
+                <span><i class="fas fa-bolt"></i> Spark</span>
+            </p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

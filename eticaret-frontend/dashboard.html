@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - E-Ticaret Analiz Sistemi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line"></i>
+                <span>E-Ticaret Analytics</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-search"></i> Arama
+                </a>
+                <a href="dashboard.html" class="nav-link active">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </a>
+            </div>
+            <div class="nav-status">
+                <span id="connection-status" class="status-badge offline">
+                    <i class="fas fa-circle"></i> Bağlantı Bekleniyor
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content dashboard-content">
+        <!-- Dashboard Header -->
+        <section class="dashboard-header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-pie"></i> Gerçek Zamanlı Dashboard</h1>
+                <p>Arama ve bölge istatistiklerini takip edin</p>
+            </div>
+            <div class="header-actions">
+                <button id="refresh-data" class="refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Yenile
+                </button>
+                <div class="auto-refresh">
+                    <input type="checkbox" id="auto-refresh" checked>
+                    <label for="auto-refresh">Otomatik Yenile (5s)</label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Overview -->
+        <section class="stats-overview">
+            <div class="stat-card glass-card">
+                <div class="stat-icon search-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-number" id="total-searches">-</span>
+                    <span class="stat-label">Toplam Arama Kaydı</span>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-icon region-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-number" id="total-regions">-</span>
+                    <span class="stat-label">Toplam Bölge Kaydı</span>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-icon time-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-number" id="last-update">-</span>
+                    <span class="stat-label">Son Güncelleme</span>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-icon status-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-number" id="db-status">-</span>
+                    <span class="stat-label">MongoDB Durumu</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <!-- Top Searches Chart -->
+            <div class="chart-container glass-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-fire"></i> En Çok Aranan Ürünler</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="searchChart"></canvas>
+                </div>
+                <div class="chart-legend" id="search-legend"></div>
+            </div>
+
+            <!-- Region Distribution Chart -->
+            <div class="chart-container glass-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-globe-europe"></i> Bölgelere Göre Dağılım</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="regionChart"></canvas>
+                </div>
+                <div class="chart-legend" id="region-legend"></div>
+            </div>
+        </section>
+
+        <!-- Data Tables -->
+        <section class="tables-section">
+            <!-- Top Searches Table -->
+            <div class="table-container glass-card">
+                <div class="table-header">
+                    <h3><i class="fas fa-list-ol"></i> Arama Detayları</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Arama Terimi</th>
+                                <th>Arama Sayısı</th>
+                                <th>Oran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="search-table-body">
+                            <tr>
+                                <td colspan="4" class="empty-state">Veri yükleniyor...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Region Stats Table -->
+            <div class="table-container glass-card">
+                <div class="table-header">
+                    <h3><i class="fas fa-map"></i> Bölge Detayları</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bölge</th>
+                                <th>Arama Sayısı</th>
+                                <th>Oran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="region-table-body">
+                            <tr>
+                                <td colspan="4" class="empty-state">Veri yükleniyor...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <i class="fas fa-code"></i> 
+                Big Data Projesi - Apache Kafka & Spark Streaming
+            </p>
+            <p class="footer-tech">
+                <span><i class="fab fa-java"></i> Java 21</span>
+                <span><i class="fas fa-database"></i> MongoDB</span>
+                <span><i class="fas fa-stream"></i> Kafka</span>
+                <span><i class="fas fa-bolt"></i> Spark</span>
+            </p>
+        </div>
+    </footer>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
