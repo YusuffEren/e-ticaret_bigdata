@@ -301,24 +301,5 @@ eticaret-bigdata/
 | Hadoop hatası | HADOOP_HOME ayarlandı mı? winutils.exe var mı? |
 | Port meşgul | `netstat -ano \| findstr :PORT` ile kontrol et |
 
----
-
-## 👥 Katkıda Bulunanlar
-
-- **Yusuf** - *Geliştirici*
-
----
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
-
----
-
-<p align="center">
-  ⭐ Projeyi beğendiyseniz yıldız vermeyi unutmayın!
 </p>
 
-<p align="center">
-  Made with ❤️ for Big Data Course
-</p>
