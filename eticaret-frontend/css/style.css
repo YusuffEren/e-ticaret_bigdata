@@ -963,3 +963,34 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+/* ===================================
+   Time Series Charts Section
+   =================================== */
+.time-charts-section {
+    margin-top: var(--spacing-xl);
+}
+
+.time-chart-wrapper {
+    height: 280px;
+    position: relative;
+}
+
+.chart-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-left: var(--spacing-sm);
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.chart-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}

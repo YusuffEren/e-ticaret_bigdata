@@ -120,6 +120,31 @@
             </div>
         </section>
 
+        <!-- Time Series Charts Section -->
+        <section class="charts-section time-charts-section">
+            <!-- Hourly Trend Chart -->
+            <div class="chart-container glass-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-clock"></i> Saatlik Arama Trendi</h3>
+                    <span class="chart-subtitle">Son 24 saatin saatlik dağılımı</span>
+                </div>
+                <div class="chart-wrapper time-chart-wrapper">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Trend Chart -->
+            <div class="chart-container glass-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Günlük Arama Trendi</h3>
+                    <span class="chart-subtitle">Son 7 günün günlük dağılımı</span>
+                </div>
+                <div class="chart-wrapper time-chart-wrapper">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </section>
+
         <!-- Data Tables -->
         <section class="tables-section">
             <!-- Top Searches Table -->

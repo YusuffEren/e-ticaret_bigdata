@@ -2,8 +2,10 @@ package com.bigdatacompany.eticaret.api;
 
 import com.bigdatacompany.eticaret.model.RegionStat;
 import com.bigdatacompany.eticaret.model.SearchStat;
+import com.bigdatacompany.eticaret.model.TimeStat;
 import com.bigdatacompany.eticaret.repository.RegionStatRepository;
 import com.bigdatacompany.eticaret.repository.SearchStatRepository;
+import com.bigdatacompany.eticaret.repository.TimeStatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +39,9 @@ public class StatsController {
     private RegionStatRepository regionStatRepository;
 
     @Autowired
+    private TimeStatRepository timeStatRepository;
+
+    @Autowired
     private MongoTemplate mongoTemplate;
 
     /**
@@ -47,10 +55,8 @@ public class StatsController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Son batch'teki arama istatistiklerini getir
+            // Arama istatistiklerini doğrudan getir (veriler zaten güncel)
             Aggregation aggregation = Aggregation.newAggregation(
-                    Aggregation.sort(Sort.Direction.DESC, "batchId"),
-                    Aggregation.group("search").first("count").as("count").first("batchId").as("batchId"),
                     Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(limit));
 
@@ -60,7 +66,7 @@ public class StatsController {
             List<Map<String, Object>> searches = results.getMappedResults().stream()
                     .map(r -> {
                         Map<String, Object> item = new HashMap<>();
-                        item.put("search", r.get("_id"));
+                        item.put("search", r.get("search"));
                         item.put("count", r.get("count"));
                         return item;
                     })
@@ -90,10 +96,8 @@ public class StatsController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Son batch'teki bölge istatistiklerini getir
+            // Bölge istatistiklerini doğrudan getir (veriler zaten güncel)
             Aggregation aggregation = Aggregation.newAggregation(
-                    Aggregation.sort(Sort.Direction.DESC, "batchId"),
-                    Aggregation.group("region").first("count").as("count").first("batchId").as("batchId"),
                     Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(limit));
 
@@ -103,7 +107,7 @@ public class StatsController {
             List<Map<String, Object>> regions = results.getMappedResults().stream()
                     .map(r -> {
                         Map<String, Object> item = new HashMap<>();
-                        item.put("region", r.get("_id"));
+                        item.put("region", r.get("region"));
                         item.put("count", r.get("count"));
                         return item;
                     })
@@ -131,13 +135,28 @@ public class StatsController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            long totalSearchRecords = searchStatRepository.count();
-            long totalRegionRecords = regionStatRepository.count();
+            // Toplam arama sayısını hesapla (tüm count'ların toplamı)
+            Aggregation searchSumAgg = Aggregation.newAggregation(
+                    Aggregation.group().sum("count").as("total"));
+            AggregationResults<Map> searchSum = mongoTemplate.aggregate(
+                    searchSumAgg, "search_stats", Map.class);
+            long totalSearches = 0;
+            if (!searchSum.getMappedResults().isEmpty()) {
+                Object total = searchSum.getMappedResults().get(0).get("total");
+                totalSearches = total != null ? ((Number) total).longValue() : 0;
+            }
+
+            // Farklı arama terimi sayısı
+            long uniqueSearchTerms = searchStatRepository.count();
+            
+            // Farklı bölge sayısı
+            long uniqueRegions = regionStatRepository.count();
 
             response.put("status", "success");
-            response.put("totalSearchRecords", totalSearchRecords);
-            response.put("totalRegionRecords", totalRegionRecords);
-            response.put("collectionsActive", totalSearchRecords > 0 || totalRegionRecords > 0);
+            response.put("totalSearchRecords", totalSearches);  // Toplam arama sayısı
+            response.put("totalRegionRecords", uniqueRegions);  // Farklı bölge sayısı
+            response.put("uniqueSearchTerms", uniqueSearchTerms);  // Farklı arama terimi sayısı
+            response.put("collectionsActive", totalSearches > 0);
 
         } catch (Exception e) {
             response.put("status", "error");
@@ -156,10 +175,8 @@ public class StatsController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Top aramaları getir
+            // Top aramaları doğrudan getir
             Aggregation searchAgg = Aggregation.newAggregation(
-                    Aggregation.sort(Sort.Direction.DESC, "batchId"),
-                    Aggregation.group("search").first("count").as("count"),
                     Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(10));
 
@@ -167,16 +184,14 @@ public class StatsController {
                     searchAgg, "search_stats", Map.class).getMappedResults().stream()
                     .map(r -> {
                         Map<String, Object> item = new HashMap<>();
-                        item.put("name", r.get("_id"));
+                        item.put("name", r.get("search"));
                         item.put("value", r.get("count"));
                         return item;
                     })
                     .collect(Collectors.toList());
 
-            // Bölge dağılımını getir
+            // Bölge dağılımını doğrudan getir
             Aggregation regionAgg = Aggregation.newAggregation(
-                    Aggregation.sort(Sort.Direction.DESC, "batchId"),
-                    Aggregation.group("region").first("count").as("count"),
                     Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(10));
 
@@ -184,7 +199,7 @@ public class StatsController {
                     regionAgg, "region_stats", Map.class).getMappedResults().stream()
                     .map(r -> {
                         Map<String, Object> item = new HashMap<>();
-                        item.put("name", r.get("_id"));
+                        item.put("name", r.get("region"));
                         item.put("value", r.get("count"));
                         return item;
                     })
@@ -198,6 +213,120 @@ public class StatsController {
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Dashboard verisi alınırken hata: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Saatlik arama istatistiklerini getir (son 24 saat)
+     * GET /api/stats/hourly
+     */
+    @GetMapping("/hourly")
+    public ResponseEntity<Map<String, Object>> getHourlyStats() {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            // time_stats koleksiyonundan saatlik verileri getir
+            Aggregation aggregation = Aggregation.newAggregation(
+                    Aggregation.group("hour").sum("count").as("totalCount"),
+                    Aggregation.sort(Sort.Direction.ASC, "_id"));
+
+            AggregationResults<Map> results = mongoTemplate.aggregate(
+                    aggregation, "time_stats", Map.class);
+
+            // 0-23 saat için veri hazırla (eksik saatler için 0)
+            Map<Integer, Long> hourlyData = new HashMap<>();
+            for (int i = 0; i < 24; i++) {
+                hourlyData.put(i, 0L);
+            }
+
+            // MongoDB'den gelen verileri ekle
+            for (Map r : results.getMappedResults()) {
+                Integer hour = (Integer) r.get("_id");
+                Long count = ((Number) r.get("totalCount")).longValue();
+                if (hour != null) {
+                    hourlyData.put(hour, count);
+                }
+            }
+
+            // Sıralı liste oluştur
+            List<Map<String, Object>> hourlyList = new ArrayList<>();
+            for (int i = 0; i < 24; i++) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("hour", String.format("%02d:00", i));
+                item.put("count", hourlyData.get(i));
+                hourlyList.add(item);
+            }
+
+            response.put("status", "success");
+            response.put("data", hourlyList);
+            response.put("lastUpdated", System.currentTimeMillis());
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Saatlik veri alınırken hata: " + e.getMessage());
+            response.put("data", List.of());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Günlük arama istatistiklerini getir (son 7 gün)
+     * GET /api/stats/daily
+     */
+    @GetMapping("/daily")
+    public ResponseEntity<Map<String, Object>> getDailyStats() {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            // time_stats koleksiyonundan günlük verileri getir
+            Aggregation aggregation = Aggregation.newAggregation(
+                    Aggregation.group("date").sum("count").as("totalCount"),
+                    Aggregation.sort(Sort.Direction.ASC, "_id"),
+                    Aggregation.limit(7));
+
+            AggregationResults<Map> results = mongoTemplate.aggregate(
+                    aggregation, "time_stats", Map.class);
+
+            // Son 7 gün için veri hazırla
+            LocalDate today = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            Map<String, Long> dailyData = new HashMap<>();
+            
+            for (int i = 6; i >= 0; i--) {
+                String dateStr = today.minusDays(i).format(formatter);
+                dailyData.put(dateStr, 0L);
+            }
+
+            // MongoDB'den gelen verileri ekle
+            for (Map r : results.getMappedResults()) {
+                String date = (String) r.get("_id");
+                Long count = ((Number) r.get("totalCount")).longValue();
+                if (date != null && dailyData.containsKey(date)) {
+                    dailyData.put(date, count);
+                }
+            }
+
+            // Sıralı liste oluştur
+            List<Map<String, Object>> dailyList = new ArrayList<>();
+            for (int i = 6; i >= 0; i--) {
+                String dateStr = today.minusDays(i).format(formatter);
+                Map<String, Object> item = new HashMap<>();
+                item.put("date", dateStr);
+                item.put("count", dailyData.get(dateStr));
+                dailyList.add(item);
+            }
+
+            response.put("status", "success");
+            response.put("data", dailyList);
+            response.put("lastUpdated", System.currentTimeMillis());
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Günlük veri alınırken hata: " + e.getMessage());
+            response.put("data", List.of());
         }
 
         return ResponseEntity.ok(response);

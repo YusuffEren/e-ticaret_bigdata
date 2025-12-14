@@ -13,6 +13,8 @@ import org.apache.spark.sql.types.StructType;
 import org.bson.Document;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +37,7 @@ public class SparkConsumerApplication {
         // Windows için Hadoop home directory ayarı
         String hadoopHome = System.getenv("HADOOP_HOME");
         if (hadoopHome == null || hadoopHome.isEmpty()) {
-            hadoopHome = "C:\\Users\\yusuf\\hadoop-3.4.1";
+            hadoopHome = "C:\\hadoop";
         }
         System.setProperty("hadoop.home.dir", hadoopHome);
 
@@ -105,6 +107,14 @@ public class SparkConsumerApplication {
                     .groupBy("region")
                     .count();
 
+            // Zaman bazlı istatistikler - Saatlik ve günlük gruplama
+            Dataset<Row> timeStats = parsedDF
+                    .filter(col("search").isNotNull())
+                    .withColumn("event_hour", hour(current_timestamp()))
+                    .withColumn("event_date", date_format(current_timestamp(), "yyyy-MM-dd"))
+                    .groupBy("event_hour", "event_date")
+                    .count();
+
             // Arama istatistiklerini işle
             searchCounts
                     .writeStream()
@@ -145,7 +155,23 @@ public class SparkConsumerApplication {
                     .trigger(org.apache.spark.sql.streaming.Trigger.ProcessingTime("5 seconds"))
                     .start();
 
-            // Her iki stream'in bitmesini bekle
+            // Zaman istatistiklerini işle
+            timeStats
+                    .writeStream()
+                    .outputMode("complete")
+                    .foreachBatch((batchDF, batchId) -> {
+                        if (batchDF.count() > 0) {
+                            System.out.println("\n⏰ Zaman Bazlı İstatistikler:");
+                            batchDF.orderBy(col("event_date").desc(), col("event_hour").desc()).show(24, false);
+
+                            // MongoDB'ye yaz
+                            writeTimeStatsToMongoDB(batchDF, batchId);
+                        }
+                    })
+                    .trigger(org.apache.spark.sql.streaming.Trigger.ProcessingTime("5 seconds"))
+                    .start();
+
+            // Tüm stream'lerin bitmesini bekle
             sparkSession.streams().awaitAnyTermination();
 
         } catch (Exception e) {
@@ -161,6 +187,7 @@ public class SparkConsumerApplication {
 
     /**
      * DataFrame verilerini MongoDB'ye yazar
+     * Her batch'te koleksiyonu temizleyip güncel verileri yazar
      */
     private static void writeToMongoDB(Dataset<Row> df, String collectionName, String keyField, long batchId) {
         try {
@@ -179,13 +206,46 @@ public class SparkConsumerApplication {
             }
 
             if (!documents.isEmpty()) {
-                // Mevcut batch verilerini sil ve yenilerini ekle
-                collection.deleteMany(new Document("batch_id", batchId));
+                // TÜM eski verileri sil ve güncel verileri ekle (tutarlılık için)
+                collection.deleteMany(new Document());
                 collection.insertMany(documents);
                 System.out.println("✅ " + collectionName + " MongoDB'ye kaydedildi. (" + documents.size() + " kayıt)");
             }
         } catch (Exception e) {
             System.err.println("⚠️ MongoDB yazma hatası (" + collectionName + "): " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Zaman bazlı istatistikleri MongoDB'ye yazar
+     * Saatlik ve günlük verileri time_stats koleksiyonuna kaydeder
+     */
+    private static void writeTimeStatsToMongoDB(Dataset<Row> df, long batchId) {
+        try {
+            MongoCollection<Document> collection = mongoDatabase.getCollection("time_stats");
+
+            List<Row> rows = df.collectAsList();
+            List<Document> documents = new ArrayList<>();
+
+            for (Row row : rows) {
+                Document doc = new Document();
+                doc.append("hour", row.getInt(0));           // event_hour
+                doc.append("date", row.getString(1));         // event_date
+                doc.append("count", row.getLong(2));          // count
+                doc.append("batch_id", batchId);
+                doc.append("updated_at", Instant.now().toString());
+                documents.add(doc);
+            }
+
+            if (!documents.isEmpty()) {
+                // TÜM eski verileri sil ve güncel verileri ekle
+                collection.deleteMany(new Document());
+                collection.insertMany(documents);
+                System.out.println("✅ time_stats MongoDB'ye kaydedildi. (" + documents.size() + " kayıt)");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ MongoDB yazma hatası (time_stats): " + e.getMessage());
             e.printStackTrace();
         }
     }

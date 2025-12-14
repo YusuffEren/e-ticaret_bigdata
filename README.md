@@ -18,6 +18,7 @@
 ## 📋 İçindekiler
 
 - [Proje Hakkında](#-proje-hakkında)
+- [Yeni Özellikler](#-yeni-özellikler---zaman-serisi-analizi)
 - [Mimari](#-mimari)
 - [Teknolojiler](#-teknolojiler)
 - [Gereksinimler](#-gereksinimler)
@@ -38,9 +39,61 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
 - 🔍 **Gerçek Zamanlı Arama Analizi** - Hangi ürünler en çok aranıyor?
 - 🗺️ **Bölgesel Analiz** - Hangi şehirlerden arama yapılıyor?
 - 📊 **Canlı Dashboard** - Chart.js ile görselleştirme
+- ⏰ **Zaman Serisi Analizi** - Saatlik ve günlük trendler (YENİ!)
 - 🚀 **Simülasyon Modu** - Otomatik veri üretimi
 - 💾 **Kalıcı Depolama** - MongoDB ile veri saklama
 - 📈 **Batch Analizi** - Geçmiş verilerin analizi
+- 🔄 **Otomatik Yenileme** - 5 saniyede bir güncellenen grafikler
+
+---
+
+## 🆕 Yeni Özellikler - Zaman Serisi Analizi
+
+### 📈 Saatlik Trend Grafiği
+- Son 24 saatin saatlik arama dağılımını gösterir
+- X ekseni: 00:00 - 23:00 saatleri
+- Y ekseni: Her saatteki toplam arama sayısı
+- Gerçek zamanlı güncelleme (5 saniyede bir)
+
+### 📅 Günlük Trend Grafiği
+- Son 7 günün günlük arama dağılımını gösterir
+- X ekseni: Son 7 gün (örn: "14 Ara", "15 Ara")
+- Y ekseni: Her gündeki toplam arama sayısı
+- Gerçek zamanlı güncelleme (5 saniyede bir)
+
+### Yeni API Endpoint'leri
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| `GET` | `/api/stats/hourly` | Son 24 saatin saatlik dağılımı |
+| `GET` | `/api/stats/daily` | Son 7 günün günlük dağılımı |
+
+### Örnek Yanıtlar
+
+**Saatlik Veri:**
+```json
+{
+  "status": "success",
+  "data": [
+    {"hour": "00:00", "count": 45},
+    {"hour": "01:00", "count": 32},
+    {"hour": "14:00", "count": 128}
+  ],
+  "lastUpdated": 1702567890123
+}
+```
+
+**Günlük Veri:**
+```json
+{
+  "status": "success",
+  "data": [
+    {"date": "2025-12-08", "count": 1250},
+    {"date": "2025-12-14", "count": 2340}
+  ],
+  "lastUpdated": 1702567890123
+}
+```
 
 ---
 
@@ -50,6 +103,12 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
                                     ┌─────────────────┐
                                     │    FRONTEND     │
                                     │  (HTML/JS/CSS)  │
+                                    │                 │
+                                    │ ┌─────────────┐ │
+                                    │ │ Bar Chart   │ │
+                                    │ │ Doughnut    │ │
+                                    │ │ Line Charts │ │ ◄── YENİ!
+                                    │ └─────────────┘ │
                                     └────────┬────────┘
                                              │
                                              ▼
@@ -59,6 +118,8 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
 │                                                                          │
 │   POST /api/search ──────► Kafka Producer ──────► search-analysisv2     │
 │   GET /api/stats/* ◄────── MongoDB                                      │
+│   GET /api/stats/hourly ◄── time_stats (YENİ!)                          │
+│   GET /api/stats/daily ◄─── time_stats (YENİ!)                          │
 └─────────────────────────────────────────────────────────────────────────┘
                                              │
                                              ▼
@@ -75,6 +136,7 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
             │    (Consumer)            │       │      (Analiz)            │
             │                          │       │                          │
             │  Kafka ─► Aggregation    │       │  MongoDB ─► Raporlama    │
+            │        ─► Time Stats     │ ◄── YENİ!                        │
             │           │              │       │                          │
             └───────────┼──────────────┘       └──────────────────────────┘
                         │                                   │
@@ -82,7 +144,8 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
             ┌─────────────────────────────────────────────────────────────┐
             │                        MONGODB                               │
             │                                                              │
-            │   search_stats   │   region_stats   │   batch_reports       │
+            │ search_stats │ region_stats │ time_stats │ batch_reports    │
+            │              │              │   (YENİ!)  │                  │
             └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -97,7 +160,7 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
 | **Apache Kafka** | 3.6.0 | Mesaj kuyruğu |
 | **Apache Spark** | 3.5.0 | Stream & Batch processing |
 | **MongoDB** | 7.0 | NoSQL veritabanı |
-| **Chart.js** | 4.x | Dashboard grafikleri |
+| **Chart.js** | 4.x | Dashboard grafikleri (Bar, Doughnut, Line) |
 | **Docker** | - | Container yönetimi |
 
 ---
@@ -107,16 +170,16 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
 - ☕ **Java 17+** (Spark için Java 17 önerilir)
 - 🐳 **Docker Desktop**
 - 📦 **Maven 3.6+** (veya Maven Wrapper)
-- 🪟 **Windows için:** Hadoop winutils.exe
+- 🪟 **Windows için:** Hadoop winutils.exe ve hadoop.dll
 
 ### Windows için Hadoop Kurulumu
 
-1. [Hadoop 3.4.1](https://hadoop.apache.org/releases.html) indirin
-2. `C:\hadoop-3.4.1` klasörüne çıkarın
-3. [winutils.exe](https://github.com/cdarlint/winutils) dosyasını `C:\hadoop-3.4.1\bin\` klasörüne kopyalayın
+1. `C:\hadoop\bin` klasörü oluşturun
+2. [winutils.exe](https://github.com/cdarlint/winutils) dosyasını `C:\hadoop\bin\` klasörüne kopyalayın
+3. [hadoop.dll](https://github.com/cdarlint/winutils) dosyasını `C:\hadoop\bin\` klasörüne kopyalayın
 4. Ortam değişkeni ayarlayın:
    ```cmd
-   setx HADOOP_HOME "C:\hadoop-3.4.1"
+   setx HADOOP_HOME "C:\hadoop"
    ```
 
 ---
@@ -126,8 +189,8 @@ Bu proje, e-ticaret platformlarındaki kullanıcı arama davranışlarını sim�
 ### 1. Projeyi Klonlayın
 
 ```bash
-git clone https://github.com/kullaniciadi/eticaret-bigdata.git
-cd eticaret-bigdata
+git clone https://github.com/YusuffEren/e-ticaret_bigdata.git
+cd e-ticaret_bigdata
 ```
 
 ### 2. Docker Altyapısını Başlatın
@@ -158,12 +221,12 @@ cd eticaret-api
 
 ### Terminal 2 - Spark Consumer
 
-```bash
+```powershell
 cd eticaret-consumer
-set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot
-set HADOOP_HOME=C:\hadoop-3.4.1
-set PATH=%HADOOP_HOME%\bin;%PATH%
-set MAVEN_OPTS=--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot"
+$env:PATH = "$env:JAVA_HOME\bin;C:\hadoop\bin;$env:PATH"
+$env:HADOOP_HOME = "C:\hadoop"
+$env:MAVEN_OPTS = "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED"
 .\mvnw.cmd exec:java
 ```
 
@@ -175,6 +238,7 @@ Tarayıcıda açın:
 
 ### Simülasyonu Başlatın
 
+Ana sayfadaki "Simülasyonu Başlat" butonuna tıklayın veya:
 ```bash
 curl http://localhost:8081/api/search
 ```
@@ -183,14 +247,20 @@ curl http://localhost:8081/api/search
 
 ## 📸 Ekran Görüntüleri
 
-### Ana Sayfa
-Modern arama arayüzü, hızlı arama etiketleri ve simülasyon kontrolleri.
-
 ### Dashboard
-Gerçek zamanlı grafikler, en çok aranan ürünler ve bölge dağılımı.
+Dashboard şu bileşenleri içerir:
+
+| Grafik | Açıklama |
+|--------|----------|
+| 📊 **En Çok Aranan Ürünler** | Bar chart - Top 10 arama terimi |
+| 🍩 **Bölgelere Göre Dağılım** | Doughnut chart - Şehir bazlı dağılım |
+| 📈 **Saatlik Trend** | Line chart - Son 24 saat (YENİ!) |
+| 📅 **Günlük Trend** | Line chart - Son 7 gün (YENİ!) |
 
 ### Spark Console
-Streaming analiz sonuçları ve MongoDB yazma durumu.
+- Streaming analiz sonuçları
+- MongoDB yazma durumu
+- Zaman bazlı istatistikler (YENİ!)
 
 ---
 
@@ -206,20 +276,24 @@ Streaming analiz sonuçları ve MongoDB yazma durumu.
 | `GET` | `/api/stats/searches` | En çok arananlar |
 | `GET` | `/api/stats/regions` | Bölge dağılımı |
 | `GET` | `/api/stats/dashboard` | Dashboard verileri |
+| `GET` | `/api/stats/summary` | Özet istatistikler |
+| `GET` | `/api/stats/hourly` | Saatlik trend (YENİ!) |
+| `GET` | `/api/stats/daily` | Günlük trend (YENİ!) |
 
-### Örnek Yanıt
+### Örnek Yanıt - Dashboard
 
 ```json
 {
   "status": "success",
   "topSearches": [
-    {"search": "telefon", "count": 150},
-    {"search": "laptop", "count": 120}
+    {"name": "telefon", "value": 150},
+    {"name": "laptop", "value": 120}
   ],
   "regionDistribution": [
-    {"region": "İstanbul", "count": 200},
-    {"region": "Ankara", "count": 150}
-  ]
+    {"name": "İstanbul", "value": 200},
+    {"name": "Ankara", "value": 150}
+  ],
+  "lastUpdated": 1702567890123
 }
 ```
 
@@ -228,7 +302,7 @@ Streaming analiz sonuçları ve MongoDB yazma durumu.
 ## 📁 Proje Yapısı
 
 ```
-eticaret-bigdata/
+e-ticaret_bigdata/
 │
 ├── eticaret-api/                    # Spring Boot API (Producer)
 │   ├── src/main/java/
@@ -237,28 +311,34 @@ eticaret-bigdata/
 │   │       ├── MessageProducer.java
 │   │       ├── api/
 │   │       │   ├── SearchController.java
-│   │       │   └── StatsController.java
+│   │       │   └── StatsController.java      # hourly/daily endpoints
 │   │       ├── config/
 │   │       │   └── CorsConfig.java
 │   │       ├── model/
+│   │       │   ├── SearchStat.java
+│   │       │   ├── RegionStat.java
+│   │       │   └── TimeStat.java             # YENİ!
 │   │       └── repository/
+│   │           ├── SearchStatRepository.java
+│   │           ├── RegionStatRepository.java
+│   │           └── TimeStatRepository.java   # YENİ!
 │   ├── docker-compose.yml
 │   └── pom.xml
 │
 ├── eticaret-consumer/               # Spark Streaming (Consumer)
 │   ├── src/main/java/
 │   │   └── com/bigdatacompany/eticaret/consumer/
-│   │       ├── SparkConsumerApplication.java
+│   │       ├── SparkConsumerApplication.java # time_stats desteği
 │   │       └── SparkBatchApplication.java
 │   └── pom.xml
 │
 ├── eticaret-frontend/               # Web Arayüzü
 │   ├── index.html
-│   ├── dashboard.html
-│   ├── css/style.css
+│   ├── dashboard.html               # Zaman grafikleri eklendi
+│   ├── css/style.css                # Yeni stiller
 │   └── js/
 │       ├── app.js
-│       └── dashboard.js
+│       └── dashboard.js             # Line chart implementasyonu
 │
 └── README.md
 ```
@@ -276,6 +356,28 @@ eticaret-bigdata/
 | Zookeeper | 2181 | - |
 
 **MongoDB Credentials:** admin / admin123
+
+---
+
+## 📊 MongoDB Koleksiyonları
+
+| Koleksiyon | Açıklama |
+|------------|----------|
+| `search_stats` | Arama terimi istatistikleri |
+| `region_stats` | Bölge bazlı istatistikler |
+| `time_stats` | Saatlik/günlük zaman istatistikleri (YENİ!) |
+
+### time_stats Veri Yapısı
+
+```json
+{
+  "hour": 14,
+  "date": "2025-12-14",
+  "count": 128,
+  "batch_id": 42,
+  "updated_at": "2025-12-14T14:30:00Z"
+}
+```
 
 ---
 
@@ -298,8 +400,39 @@ eticaret-bigdata/
 |-------|-------|
 | Kafka bağlantı hatası | Docker çalışıyor mu? `docker ps` |
 | Java module hatası | MAVEN_OPTS'u ayarladın mı? |
-| Hadoop hatası | HADOOP_HOME ayarlandı mı? winutils.exe var mı? |
+| Hadoop hatası | HADOOP_HOME ayarlandı mı? winutils.exe ve hadoop.dll var mı? |
 | Port meşgul | `netstat -ano \| findstr :PORT` ile kontrol et |
+| Grafikler güncellenmiyor | API ve Consumer çalışıyor mu kontrol et |
+| Zaman grafikleri boş | Simülasyonu başlat ve birkaç saniye bekle |
 
-</p>
+---
 
+## 📝 Değişiklik Geçmişi
+
+### v2.0.0 (2025-12-14)
+- ✨ Zaman Serisi Analizi özelliği eklendi
+- 📈 Saatlik trend grafiği (Line Chart)
+- 📅 Günlük trend grafiği (Line Chart)
+- 🆕 `/api/stats/hourly` endpoint'i
+- 🆕 `/api/stats/daily` endpoint'i
+- 🆕 `time_stats` MongoDB koleksiyonu
+- 🆕 `TimeStat` model sınıfı
+- 🔄 Dashboard 5 saniyede bir otomatik güncelleme
+
+### v1.0.0
+- 🚀 İlk sürüm
+- 🔍 Gerçek zamanlı arama analizi
+- 🗺️ Bölgesel analiz
+- 📊 Dashboard grafikleri
+
+---
+
+## 👨‍💻 Geliştirici
+
+**Yusuf Eren** - [GitHub](https://github.com/YusuffEren)
+
+---
+
+## 📄 Lisans
+
+Bu proje eğitim amaçlı geliştirilmiştir.
